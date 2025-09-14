@@ -58,16 +58,18 @@ class PinterestWorker:
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url) as response:
                     if response.status != 200:
+                        # pylint: disable-next=broad-exception-raised
                         raise Exception(f"HTTP ошибка: {response.status}")
                     content_type = response.headers.get("content-type", "")
                     if not content_type.startswith("image/"):
+                        # pylint: disable-next=broad-exception-raised
                         raise Exception("URL не ведет на изображение")
                     async with aiofiles.open(download_path, "wb") as f:
                         async for chunk in response.content.iter_chunked(1024):
                             await f.write(chunk)
 
             return download_path
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error(e)
             return download_path
 
