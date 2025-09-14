@@ -114,7 +114,7 @@ async def handle_other_messages(message: Message) -> None:
     else:
         await message.answer(
             "Жду фотку с артикулами с WB, или link на Pinterest другого не умею сори...\n\n"
-            "Либо /my_urls"
+            "Либо /help"
         )
 
 

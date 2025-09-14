@@ -6,7 +6,11 @@ import os
 import re
 from typing import List
 
-import easyocr
+# Для видеокарты, иначе бот крашится
+# import easyocr
+
+from PIL import Image
+from pytesseract import pytesseract
 
 from logger import logger
 
@@ -28,8 +32,11 @@ class ImageProcessor:
         """
         result = []
         try:
-            reader = easyocr.Reader(["ch_sim", "en"])
-            result = reader.readtext(img_path, detail=0)
+            result = pytesseract.image_to_string(
+                Image.open(img_path), lang="rus+eng"
+            ).split()
+            # reader = easyocr.Reader(["ch_sim", "en"])
+            # result = reader.readtext(img_path, detail=0)
         except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error(e)
         return result

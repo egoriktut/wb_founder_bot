@@ -3,13 +3,13 @@
 """
 
 import logging
-import sys
+# import sys
 
 logging.basicConfig(
     filename="bot.log",
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    stream=sys.stdout,
+    # stream=sys.stdout,
 )
 
 logger = logging.getLogger("WB FOUNDER")
