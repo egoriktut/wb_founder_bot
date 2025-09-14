@@ -85,7 +85,7 @@ class PinterestWorker:
                 html = await response.text()
                 soup = BeautifulSoup(html, "html.parser")
                 hcl_divs = soup.find("img", class_=lambda x: x and "hCL" in x.split())
-                return hcl_divs.get("src")
+                return hcl_divs.get("src") if hcl_divs else ""
 
     async def run(self, url, message: Message) -> None:
         """
