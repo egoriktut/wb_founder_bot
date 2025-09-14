@@ -1,0 +1,13 @@
+[Unit]
+Description=Telegram WB Bot
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/bot_wb_founder
+ExecStart=/home/bot_wb_founder/.venv/bin/python /home/bot_wb_founder/bot.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
