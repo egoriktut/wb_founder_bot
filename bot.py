@@ -6,12 +6,13 @@ import asyncio
 import os
 import uuid
 from datetime import datetime
+from sys import platform
 
 from aiogram import Bot, Dispatcher, F, html
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, BotCommand
 from dotenv import load_dotenv
 
 from database import Database
@@ -47,9 +48,35 @@ async def command_start_handler(message: Message) -> None:
 
     await message.answer(
         f"Привет, {html.bold(message.from_user.full_name)}!\n\n"
-        "Жду фото с артикулами с WB или link с Pinterest\n\n"
+        "Жду фото с артикулами с WB/YM или link с Pinterest\n\n"
         "или /help"
     )
+
+
+@dp.message(Command("wb"))
+async def command_wb_handler(message: Message) -> None:
+    """
+    Обработчик команды /WB
+
+    :param message: Сообщение от бота
+    :return:
+    """
+    db.update_user(message.from_user.id, "WB")
+
+    await message.answer(f"Поиск сменен на WB")
+
+
+@dp.message(Command("ym"))
+async def command_ym_handler(message: Message) -> None:
+    """
+    Обработчик команды /YM
+
+    :param message: Сообщение от бота
+    :return:
+    """
+    db.update_user(message.from_user.id, "YM")
+
+    await message.answer(f"Поиск сменен на YM")
 
 
 @dp.message(Command("help"))
@@ -62,9 +89,11 @@ async def help_handler(message: Message) -> None:
     """
     await message.answer(
         "Помощь по боту:\n\n"
-        "Отправь мне изображение c артикулами WB как фото или link с Pinterest\n\n"
+        "Отправь мне изображение c артикулами WB/YM как фото или link с Pinterest\n\n"
         "Команды:\n"
         "/start - Начать работу, регистрация в боте\n"
+        "/wb - Поиск на WB\n"
+        "/ym - Поиск на YM\n"
         "/help - Эта справка\n\n"
         "После загрузки изображение обрабатывается 5-10 секунд\n"
     )
@@ -92,8 +121,11 @@ async def handle_photo(message: Message, bot: Bot) -> None:
         download_path = f"downloads/{filename}"
 
         await bot.download_file(file_path, download_path)
+        platform_to_search = await db.get_user_platform(message.from_user.id)
         await processing_msg.edit_text("Достаем артикулы\n\n")
-        asyncio.create_task(processor.run(download_path, processing_msg))
+        asyncio.create_task(
+            processor.run(download_path, processing_msg, platform_to_search)
+        )
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error("Ошибка загрузки фото: %s", e)
         await message.answer("Произошла ошибка при загрузке изображения")
@@ -110,12 +142,22 @@ async def handle_other_messages(message: Message) -> None:
     if "https://pin.it/" in message.text:
         processing_msg = await message.answer("Смотрю этот пин")
         url = message.text.split(" ")[-1]
-        asyncio.create_task(pinterest.run(url, processing_msg))
+        platform_to_search = await db.get_user_platform(message.from_user.id)
+        asyncio.create_task(pinterest.run(url, processing_msg, platform_to_search))
     else:
         await message.answer(
-            "Жду фотку с артикулами с WB, или link на Pinterest другого не умею сори...\n\n"
+            "Жду фотку с артикулами с WB/YM, или link на Pinterest другого не умею сори...\n\n"
             "Либо /help"
         )
+
+
+async def set_default_commands(bot: Bot):
+    commands = [
+        BotCommand(command="wb", description="Поиск на WB"),
+        BotCommand(command="ym ", description="Поиск на YM"),
+        BotCommand(command="help", description="Помощь по командам"),
+    ]
+    await bot.set_my_commands(commands)
 
 
 async def main() -> None:
@@ -125,6 +167,8 @@ async def main() -> None:
     :return:
     """
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+
+    await set_default_commands(bot)
     await dp.start_polling(bot)
 
 

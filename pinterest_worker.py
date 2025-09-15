@@ -87,7 +87,7 @@ class PinterestWorker:
                 hcl_divs = soup.find("img", class_=lambda x: x and "hCL" in x.split())
                 return hcl_divs.get("src") if hcl_divs else ""
 
-    async def run(self, url, message: Message) -> None:
+    async def run(self, url, message: Message, platform: str) -> None:
         """
         Запуск обработки ссылки с пинтерест
 
@@ -101,6 +101,6 @@ class PinterestWorker:
             path = await self.download_from_url(link_photo)
             if path:
                 await message.edit_text("Достаем артикулы")
-                await self.processor.run(path, message)
+                await self.processor.run(path, message, platform)
         else:
             await message.edit_text("Изображение не найдено")

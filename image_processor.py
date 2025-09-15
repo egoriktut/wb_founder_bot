@@ -10,13 +10,11 @@ from typing import List
 # import easyocr
 
 from PIL import Image
-from aiogram.client.session import aiohttp
 from pytesseract import pytesseract
 
 from logger import logger
 
 WB_URL_TEMPLATE = "https://www.wildberries.ru/catalog/{art}/detail.aspx"
-WB_URL_CHECKER = "https://rec-ins.wildberries.ru/api/v1/recommendations?nm={art}"
 MARKET_URL_TEMPLATE = (
     "https://market.yandex.ru/search?text={art}"
     "&cvredirect=1&businessId=191278432&searchContext=sins_ctx"
@@ -64,43 +62,35 @@ class ImageProcessor:
         return result
 
     @staticmethod
-    async def create_urls(list_of_arts: List[str]) -> List[str]:
+    async def create_urls(list_of_arts: List[str], platform: str = "WB") -> List[str]:
         """
         Создание и проверка ссылки
 
         :param list_of_arts: Список артикулов
+        :param platform: Тип площадки
         :return: Список ссылок
         """
         result = []
         for art in list_of_arts:
-            url_wb = WB_URL_CHECKER.format(art=art)
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url_wb) as response:
-                    if response.status == 200:
-                        response = await response.json()
-                        if len(response.get("nms", [])):
-                            result.append(WB_URL_TEMPLATE.format(art=art))
-            url_market = MARKET_URL_TEMPLATE.format(art=art)
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url_market) as response:
-                    if response.status == 200:
-                        text = await response.text()
-                        if "Здесь такого нет" not in text:
-                            result.append(url_market)
+            if platform == "WB":
+                result.append(WB_URL_TEMPLATE.format(art=art))
+            elif platform == "YM":
+                result.append(MARKET_URL_TEMPLATE.format(art=art))
         return result
 
-    async def run(self, path: str, message) -> List[str]:
+    async def run(self, path: str, message, platform: str) -> List[str]:
         """
         Запуск обработки изображения
 
         :param path: Путь до изображения
         :param message: Сообщение от бота
+        :param platform: Тип площадки
         :return: Список ссылок
         """
         text = self.get_text(path)
         clean_text = self.research_text(text)
         await message.edit_text(f"Найдено {len(clean_text)} артикулов")
-        urls = await self.create_urls(clean_text)
+        urls = await self.create_urls(clean_text, platform)
         logger.info(urls)
         if urls:
             await message.edit_text(f"Найдено {len(urls)} карточек товаров")
